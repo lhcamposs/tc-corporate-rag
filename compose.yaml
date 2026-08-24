@@ -1,0 +1,53 @@
+services:
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Descomente o bloco abaixo se sua máquina tiver GPU NVIDIA com nvidia-container-toolkit instalado
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: postgres-pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tcc_user
+      POSTGRES_PASSWORD: tcc_password
+      POSTGRES_DB: tcc_rag_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tcc_user -d tcc_rag_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    # Ative este serviço quando entrar na Fase 4 (comparação pgvector x ChromaDB).
+    # Pode comentar o serviço inteiro enquanto o foco é só o pipeline com pgvector.
+
+volumes:
+  ollama_data:
+  postgres_data:
+  chroma_data:
