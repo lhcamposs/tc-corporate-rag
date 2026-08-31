@@ -8,13 +8,13 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Configuração central do cliente de chat (ChatClient) usado no pipeline RAG.
- *
+ * <p>
  * O ChatClient é montado com o QuestionAnswerAdvisor, que automaticamente:
- *   1. Recebe a pergunta do usuário
- *   2. Busca os trechos mais relevantes no VectorStore (pgvector)
- *   3. Injeta esses trechos como contexto no prompt enviado ao LLM (Ollama)
- *   4. Retorna a resposta gerada com base apenas no contexto recuperado
- *
+ * 1. Recebe a pergunta do usuário
+ * 2. Busca os trechos mais relevantes no VectorStore (pgvector)
+ * 3. Injeta esses trechos como contexto no prompt enviado ao LLM (Ollama)
+ * 4. Retorna a resposta gerada com base apenas no contexto recuperado
+ * <p>
  * NOTA: a partir do Spring AI 1.0.3, o QuestionAnswerAdvisor mudou de pacote:
  * antes ficava em org.springframework.ai.chat.client.advisor, agora está em
  * org.springframework.ai.chat.client.advisor.vectorstore. Se você estiver
@@ -25,18 +25,21 @@ import org.springframework.context.annotation.Configuration;
 public class ChatConfig {
 
     private static final String SYSTEM_PROMPT = """
-            Você é um assistente que responde perguntas EXCLUSIVAMENTE com base
-            no contexto de documentos corporativos fornecido.
-            Se a resposta não estiver no contexto, diga claramente que não
-            encontrou essa informação na base de conhecimento — não utilize
-            conhecimento externo ao contexto fornecido.
+            You are an assistant that answers questions EXCLUSIVELY based
+            on the context of the provided corporate documents.\s
+            If the answer is not in the context, clearly state that you
+            did not find that information in the knowledge base — do not use
+            knowledge outside of the provided context.
             """;
 
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder, VectorStore vectorStore) {
+        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
+                .build();
+
         return builder
                 .defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(new QuestionAnswerAdvisor(vectorStore))
+                .defaultAdvisors(questionAnswerAdvisor)
                 .build();
     }
 }

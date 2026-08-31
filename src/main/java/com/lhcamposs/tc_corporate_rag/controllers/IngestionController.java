@@ -1,7 +1,7 @@
-package com.lhcamposs.tc_corporate_rag.controller;
+package com.lhcamposs.tc_corporate_rag.controllers;
 
 import com.lhcamposs.tc_corporate_rag.dto.IngestionResponse;
-import com.lhcamposs.tc_corporate_rag.service.IngestionService;
+import com.lhcamposs.tc_corporate_rag.services.IngestionService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;

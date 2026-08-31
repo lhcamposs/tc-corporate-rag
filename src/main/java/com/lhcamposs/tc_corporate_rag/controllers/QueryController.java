@@ -1,9 +1,9 @@
-package com.lhcamposs.tc_corporate_rag.controller;
+package com.lhcamposs.tc_corporate_rag.controllers;
 
 import com.lhcamposs.tc_corporate_rag.dto.QueryRequest;
 import com.lhcamposs.tc_corporate_rag.dto.QueryResponse;
-import com.lhcamposs.tc_corporate_rag.service.LexicalSearchService;
-import com.lhcamposs.tc_corporate_rag.service.RagQueryService;
+import com.lhcamposs.tc_corporate_rag.services.LexicalSearchService;
+import com.lhcamposs.tc_corporate_rag.services.RagQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

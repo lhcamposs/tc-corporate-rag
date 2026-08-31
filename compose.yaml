@@ -22,8 +22,8 @@ services:
     container_name: postgres-pgvector
     restart: unless-stopped
     environment:
-      POSTGRES_USER: tcc_user
-      POSTGRES_PASSWORD: tcc_password
+      POSTGRES_USER: lhcampos
+      POSTGRES_PASSWORD: 135791
       POSTGRES_DB: tcc_rag_db
     ports:
       - "5432:5432"

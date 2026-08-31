@@ -1,6 +1,7 @@
-package com.lhcamposs.tc_corporate_rag.service;
+package com.lhcamposs.tc_corporate_rag.services;
 
 import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.JsonMetadataGenerator;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;

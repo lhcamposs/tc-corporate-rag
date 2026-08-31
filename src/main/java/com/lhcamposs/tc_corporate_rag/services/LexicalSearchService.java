@@ -1,4 +1,4 @@
-package com.lhcamposs.tc_corporate_rag.service;
+package com.lhcamposs.tc_corporate_rag.services;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
