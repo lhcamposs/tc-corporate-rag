@@ -24,14 +24,14 @@ services:
     environment:
       POSTGRES_USER: lhcampos
       POSTGRES_PASSWORD: 135791
-      POSTGRES_DB: tcc_rag_db
+      POSTGRES_DB: tc_rag_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tcc_user -d tcc_rag_db"]
+      test: [ "CMD-SHELL", "pg_isready -U lhcampos -d tc_rag_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
