@@ -19,7 +19,7 @@ import java.util.List;
  * (baseline), lado a lado, para facilitar a comparação da Fase 4.
  */
 @RestController
-@RequestMapping("/api/consultas")
+@RequestMapping("/api/query")
 public class QueryController {
 
     private final RagQueryService ragQueryService;
@@ -31,7 +31,7 @@ public class QueryController {
     }
 
     /**
-     * POST /api/consultas
+     * POST /api/query
      * Corpo: { "pergunta": "..." }
      * Pergunta em linguagem natural -> resposta gerada via RAG
      * (embeddings + pgvector + LLM no Ollama).
@@ -46,7 +46,7 @@ public class QueryController {
     }
 
     /**
-     * GET /api/consultas/baseline?termo=...
+     * GET /api/query/baseline?termo=...
      * Busca lexical simples (SQL LIKE) — baseline de comparação da Fase 4.
      */
     @GetMapping("/baseline")

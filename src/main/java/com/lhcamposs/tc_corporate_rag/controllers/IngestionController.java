@@ -17,7 +17,7 @@ import java.io.IOException;
  * Endpoints de ingestão de documentos corporativos (PDFs).
  */
 @RestController
-@RequestMapping("/api/documentos")
+@RequestMapping("/api/documents")
 public class IngestionController {
 
     private final IngestionService ingestionService;
@@ -27,7 +27,7 @@ public class IngestionController {
     }
 
     /**
-     * POST /api/documentos/upload
+     * POST /api/documents/upload
      * Recebe um PDF (multipart/form-data, campo "arquivo") e o processa:
      * extrai texto, gera chunks, cria embeddings e indexa no pgvector.
      */
@@ -39,7 +39,7 @@ public class IngestionController {
         return ResponseEntity.ok(new IngestionResponse(
                 arquivo.getOriginalFilename(),
                 totalChunks,
-                "PROCESSADO"
+                "PROCESSED"
         ));
     }
 }
