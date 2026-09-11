@@ -8,6 +8,11 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     # Descomente o bloco abaixo se sua máquina tiver GPU NVIDIA com nvidia-container-toolkit instalado
     # deploy:
     #   resources:
@@ -16,6 +21,19 @@ services:
     #         - driver: nvidia
     #           count: all
     #           capabilities: [gpu]
+
+  ollama-pull-models:
+    image: curlimages/curl:latest
+    container_name: ollama-pull-models
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        sleep 5;
+        curl -X POST http://ollama:11434/api/pull -d '{"name": "llama3.2:3b"}';
+        curl -X POST http://ollama:11434/api/pull -d '{"name": "nomic-embed-text"}';
 
   postgres:
     image: pgvector/pgvector:pg16
