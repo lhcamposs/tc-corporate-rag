@@ -1,5 +1,6 @@
 package com.lhcamposs.tc_corporate_rag.services;
 
+import com.lhcamposs.tc_corporate_rag.exceptions.LlmIntegrationException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +22,16 @@ public class RagQueryService {
     }
 
     public String responder(String pergunta) {
-        return chatClient.prompt()
-                .user(pergunta)
-                .call()
-                .content();
+        try {
+            return chatClient.prompt()
+                    .user(pergunta)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            throw new LlmIntegrationException(
+                    "Failed to generate a response using the language model. Check if the service (e.g., Ollama) is running and accessible.",
+                    e
+            );
+        }
     }
 }

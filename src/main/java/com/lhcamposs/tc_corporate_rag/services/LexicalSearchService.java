@@ -1,5 +1,7 @@
 package com.lhcamposs.tc_corporate_rag.services;
 
+import com.lhcamposs.tc_corporate_rag.exceptions.LexicalSearchException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +22,14 @@ public class LexicalSearchService {
     }
 
     public List<String> buscarPorTermo(String termo) {
-        String termoLike = "%" + termo + "%";
-        return jdbcTemplate.queryForList(
-                "SELECT content FROM document_chunk WHERE content ILIKE ? LIMIT 10",
-                String.class, termoLike
-        );
+        try {
+            String termoLike = "%" + termo + "%";
+            return jdbcTemplate.queryForList(
+                    "SELECT content FROM document_chunk WHERE content ILIKE ? LIMIT 10",
+                    String.class, termoLike
+            );
+        } catch (DataAccessException e) {
+            throw new LexicalSearchException("Failed to search for term in the relational database.", e);
+        }
     }
 }

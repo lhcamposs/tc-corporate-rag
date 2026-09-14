@@ -1,11 +1,15 @@
 package com.lhcamposs.tc_corporate_rag.services;
 
+import com.lhcamposs.tc_corporate_rag.exceptions.DocumentProcessingException;
+import com.lhcamposs.tc_corporate_rag.exceptions.LexicalSearchException;
+import com.lhcamposs.tc_corporate_rag.exceptions.LlmIntegrationException;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.JsonMetadataGenerator;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.Resource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,25 +35,46 @@ public class IngestionService {
     }
 
     public int ingestPdf(Resource pdfResource, String nomeArquivo) {
-        // 1. Extrai o texto do PDF (cada página vira um Document)
-        PagePdfDocumentReader reader = new PagePdfDocumentReader(pdfResource);
-        List<Document> pages = reader.get();
+        List<Document> chunks;
 
-        // 2. Divide em chunks menores, melhora a precisão da recuperação
-        TokenTextSplitter splitter = new TokenTextSplitter();
-        List<Document> chunks = splitter.apply(pages);
+        try {
+            // 1. Extrai o texto do PDF (cada página vira um Document)
+            PagePdfDocumentReader reader = new PagePdfDocumentReader(pdfResource);
+            List<Document> pages = reader.get();
 
-        // 3. Gera os embeddings (via Ollama) e salva no pgvector
-        vectorStore.add(chunks);
+            // 2. Divide em chunks menores, melhora a precisão da recuperação
+            TokenTextSplitter splitter = TokenTextSplitter.builder()
+                    .withChunkSize(800)              // Tamanho alvo de tokens por bloco
+                    .withMinChunkSizeChars(350)      // Evita blocos minúsculos irrelevantes
+                    .withMinChunkLengthToEmbed(5)    // Comprimento mínimo aceitável
+                    .withKeepSeparator(true)         // Mantém quebras de linha/parágrafos estruturais
+                    .build();
 
-        // 4. Salva o texto puro na tabela relacional, para a busca lexical (baseline)
-        for (int i = 0; i < chunks.size(); i++) {
-            jdbcTemplate.update(
-                    "INSERT INTO document_chunk (source_file, chunk_index, content) VALUES (?, ?, ?)",
-                    nomeArquivo, i, chunks.get(i).getText()
-            );
+            chunks = splitter.apply(pages);
+        } catch (Exception e) {
+            throw new DocumentProcessingException("Failed to extract and fragment text from the PDF document: " + nomeArquivo, e);
+        }
+
+        try {
+            // 3. Gera os embeddings (via Ollama) e salva no pgvector
+            vectorStore.add(chunks);
+        } catch (Exception e) {
+            throw new LlmIntegrationException("Failed to generate embeddings or connect to the vector store. Check if the LLM model is running.", e);
+        }
+
+        try {
+            // 4. Salva o texto puro na tabela relacional, para a busca lexical (baseline)
+            for (int i = 0; i < chunks.size(); i++) {
+                jdbcTemplate.update(
+                        "INSERT INTO document_chunk (source_file, chunk_index, content) VALUES (?, ?, ?)",
+                        nomeArquivo, i, chunks.get(i).getText()
+                );
+            }
+        } catch (Exception e) {
+            throw new LexicalSearchException("Failed to save text chunks to the relational database for lexical search.", e);
         }
 
         return chunks.size();
+
     }
 }
