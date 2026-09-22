@@ -1,0 +1,41 @@
+spring.application.name=tc-corporate-rag
+logging.pattern.console=%green(%d{HH:mm:ss.SSS}) %blue(%-5level) %red([%thread]) %yellow(%logger{15}) - %msg%n
+
+# --- Conexao com o PostgreSQL (rodando no container 'postgres') ---
+spring.datasource.url=jdbc:postgresql://localhost:5432/tc_rag_db
+spring.datasource.username=USERNAME_AQUI
+spring.datasource.password=SENHA_AQUI
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# --- Ollama (embeddings + geracao de texto) ---
+spring.ai.ollama.base-url=http://localhost:11434
+spring.ai.ollama.chat.model=llama3.2:latest
+spring.ai.ollama.embedding.model=nomic-embed-text
+
+# --- HikariCP Configuration ---
+spring.datasource.hikari.max-lifetime=600000
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.connection-timeout=20000
+spring.datasource.hikari.validation-timeout=5000
+
+# --- Vector store: pgvector ---
+spring.ai.vectorstore.pgvector.index-type=HNSW
+spring.ai.vectorstore.pgvector.distance-type=COSINE_DISTANCE
+spring.ai.vectorstore.pgvector.dimensions=768
+spring.ai.vectorstore.pgvector.initialize-schema=true
+
+# --- Desativa a auto-configuracao do Chroma por enquanto (evita o conflito ---
+# --- de bean 'vectorStore' com o pgvector). So reative na Fase 4, quando ---
+# --- for comparar os dois bancos vetoriais. ---
+spring.autoconfigure.exclude=org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreAutoConfiguration
+
+# --- Integracao com Docker Compose ---
+spring.docker.compose.enabled=true
+
+# --- Inicializacao do Banco de Dados ---
+spring.sql.init.mode=always
+spring.jpa.hibernate.ddl-auto=none
+
+server.port=8080
+
+logging.level.org.springframework.ai=DEBUG
