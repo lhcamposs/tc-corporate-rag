@@ -22,3 +22,14 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven build output
+target/
+
+# IntelliJ - datasource configs podem conter credenciais
+.idea/dataSources.xml
+.idea/dataSources.local.xml
+.idea/dataSources/
+
+# Configuração local com credenciais (usar application.properties.example como base)
+src/main/resources/application.properties
