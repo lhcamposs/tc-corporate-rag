@@ -4,7 +4,10 @@ import com.lhcamposs.tc_corporate_rag.dto.QueryRequest;
 import com.lhcamposs.tc_corporate_rag.dto.QueryResponse;
 import com.lhcamposs.tc_corporate_rag.services.LexicalSearchService;
 import com.lhcamposs.tc_corporate_rag.services.RagQueryService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,12 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Endpoints de consulta: RAG (busca semântica + geração) e busca lexical
- * (baseline), lado a lado, para facilitar a comparação da Fase 4.
- */
 @RestController
 @RequestMapping("/api/query")
+@Validated
 public class QueryController {
 
     private final RagQueryService ragQueryService;
@@ -30,14 +30,8 @@ public class QueryController {
         this.lexicalSearchService = lexicalSearchService;
     }
 
-    /**
-     * POST /api/query
-     * Corpo: { "pergunta": "..." }
-     * Pergunta em linguagem natural -> resposta gerada via RAG
-     * (embeddings + pgvector + LLM no Ollama).
-     */
     @PostMapping
-    public ResponseEntity<QueryResponse> consultarRag(@RequestBody QueryRequest request) {
+    public ResponseEntity<QueryResponse> consultarRag(@Valid @RequestBody QueryRequest request) {
         long inicio = System.currentTimeMillis();
         String resposta = ragQueryService.responder(request.pergunta());
         long duracao = System.currentTimeMillis() - inicio;
@@ -45,12 +39,9 @@ public class QueryController {
         return ResponseEntity.ok(new QueryResponse(resposta, duracao));
     }
 
-    /**
-     * GET /api/query/baseline?termo=...
-     * Busca lexical simples (SQL LIKE) — baseline de comparação da Fase 4.
-     */
     @GetMapping("/baseline")
-    public ResponseEntity<List<String>> consultarBaseline(@RequestParam String termo) {
+    public ResponseEntity<List<String>> consultarBaseline(
+            @RequestParam @NotBlank(message = "O termo de busca não pode estar vazio.") String termo) {
         return ResponseEntity.ok(lexicalSearchService.buscarPorTermo(termo));
     }
 }
