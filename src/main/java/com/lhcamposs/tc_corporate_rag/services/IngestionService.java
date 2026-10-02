@@ -1,15 +1,11 @@
 package com.lhcamposs.tc_corporate_rag.services;
 
 import com.lhcamposs.tc_corporate_rag.exceptions.DocumentProcessingException;
-import com.lhcamposs.tc_corporate_rag.exceptions.LexicalSearchException;
-import com.lhcamposs.tc_corporate_rag.exceptions.LlmIntegrationException;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.JsonMetadataGenerator;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.Resource;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +18,10 @@ import java.util.List;
  * Além de salvar no VectorStore (para a busca semântica), também guarda os
  * chunks em texto puro numa tabela relacional (document_chunk) — é isso que
  * alimenta a busca lexical (baseline SQL LIKE) usada na Fase 4 de avaliação.
+ *
+ * A ingestão é idempotente: a identidade de um documento é o nome do arquivo.
+ * Reenviar o mesmo PDF (ou uma versão atualizada dele) substitui os chunks
+ * anteriores em vez de duplicá-los (ver {@link IngestionSupport}).
  */
 @Service
 public class IngestionService {
@@ -50,31 +50,16 @@ public class IngestionService {
                     .withKeepSeparator(true)         // Mantém quebras de linha/parágrafos estruturais
                     .build();
 
-            chunks = splitter.apply(pages);
+            // 3. Atribui ID determinístico e metadados de rastreio a cada chunk
+            chunks = IngestionSupport.comIdentidadeEstavel(splitter.apply(pages), nomeArquivo, "pdf");
         } catch (Exception e) {
             throw new DocumentProcessingException("Failed to extract and fragment text from the PDF document: " + nomeArquivo, e);
         }
 
-        try {
-            // 3. Gera os embeddings (via Ollama) e salva no pgvector
-            vectorStore.add(chunks);
-        } catch (Exception e) {
-            throw new LlmIntegrationException("Failed to generate embeddings or connect to the vector store. Check if the LLM model is running.", e);
-        }
-
-        try {
-            // 4. Salva o texto puro na tabela relacional, para a busca lexical (baseline)
-            for (int i = 0; i < chunks.size(); i++) {
-                jdbcTemplate.update(
-                        "INSERT INTO document_chunk (source_file, chunk_index, content) VALUES (?, ?, ?)",
-                        nomeArquivo, i, chunks.get(i).getText()
-                );
-            }
-        } catch (Exception e) {
-            throw new LexicalSearchException("Failed to save text chunks to the relational database for lexical search.", e);
-        }
+        // 4. Gera embeddings + upsert no pgvector e na tabela lexical,
+        //    removendo chunks obsoletos de versões anteriores do mesmo arquivo
+        IngestionSupport.sincronizar(vectorStore, jdbcTemplate, nomeArquivo, chunks);
 
         return chunks.size();
-
     }
 }

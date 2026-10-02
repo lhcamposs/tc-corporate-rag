@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -82,7 +83,37 @@ class IngestionServiceTest {
     }
 
     @Test
+    void ingestPdf_DeveGerarOsMesmosIdsEMetadados_AoReingerirOMesmoArquivo() throws IOException {
+
+        int primeira = ingestionService.ingestPdf(criarPdf(LINHAS_PDF), NOME_ARQUIVO);
+        int segunda = ingestionService.ingestPdf(criarPdf(LINHAS_PDF), NOME_ARQUIVO);
+
+        assertEquals(primeira, segunda);
+        verify(vectorStore, times(2)).add(chunksCaptor.capture());
+        List<Document> chunks1 = chunksCaptor.getAllValues().get(0);
+        List<Document> chunks2 = chunksCaptor.getAllValues().get(1);
+
+        assertEquals(chunks1.stream().map(Document::getId).toList(),
+                chunks2.stream().map(Document::getId).toList());
+        assertEquals(IngestionSupport.idDoChunk(NOME_ARQUIVO, 0), chunks1.get(0).getId());
+
+        assertEquals(NOME_ARQUIVO, chunks1.get(0).getMetadata().get("source_file"));
+        assertEquals(0, chunks1.get(0).getMetadata().get("chunk_index"));
+        assertEquals("pdf", chunks1.get(0).getMetadata().get("source"));
+    }
+
+    @Test
+    void ingestPdf_DeveRemoverChunksObsoletosDaMesmaFonte_NosDoisArmazenamentos() throws IOException {
+
+        int total = ingestionService.ingestPdf(criarPdf(LINHAS_PDF), NOME_ARQUIVO);
+
+        verify(vectorStore).delete(any(Filter.Expression.class));
+        verify(jdbcTemplate).update(IngestionSupport.LEXICAL_DELETE_STALE_SQL, NOME_ARQUIVO, total);
+    }
+
+    @Test
     void ingestPdf_DeveLancarDocumentProcessingException_QuandoArquivoNaoEhPdfValido() {
+
         Resource naoEhPdf = new ByteArrayResource("isto nao e um pdf".getBytes(StandardCharsets.UTF_8)) {
             @Override
             public String getFilename() {
@@ -110,6 +141,7 @@ class IngestionServiceTest {
 
     @Test
     void ingestPdf_DeveLancarLexicalSearchException_QuandoFalhaNoInsertRelacional() throws IOException {
+        // Arrange
         Resource pdf = criarPdf(LINHAS_PDF);
         when(jdbcTemplate.update(anyString(), any(), any(), any()))
                 .thenThrow(new RuntimeException("Insert error"));

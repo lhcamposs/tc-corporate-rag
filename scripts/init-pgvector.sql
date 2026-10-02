@@ -8,11 +8,15 @@ CREATE
 EXTENSION IF NOT EXISTS vector;
 
 -- Tabela para busca lexical (baseline)
+-- UNIQUE (source_file, chunk_index) é o que torna a ingestão idempotente:
+-- reingerir o mesmo arquivo atualiza as linhas (ON CONFLICT) em vez de duplicar.
+-- Para bancos já existentes, aplique db/migrations/001_ingestao_idempotente.sql.
 CREATE TABLE IF NOT EXISTS document_chunk (
                                               id SERIAL PRIMARY KEY,
-                                              source_file TEXT,
-                                              chunk_index INT,
-                                              content TEXT
+                                              source_file TEXT NOT NULL,
+                                              chunk_index INT NOT NULL,
+                                              content TEXT NOT NULL,
+                                              CONSTRAINT uq_document_chunk_source_index UNIQUE (source_file, chunk_index)
 );
 
 -- ---------------------------------------------------------------------
@@ -46,4 +50,4 @@ VALUES ('RH', 'Política de Férias',
 -- O Spring AI, ao inicializar o VectorStore (com initialize-schema: true no
 -- application.properties), cria a tabela de embeddings automaticamente. Este
 -- script só garante que a extensão pgvector e as tabelas-fonte já estão
--- disponíveis antes disso.
+-- disponíveis antes disso.
