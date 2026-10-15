@@ -24,10 +24,22 @@ spring.ai.vectorstore.pgvector.distance-type=COSINE_DISTANCE
 spring.ai.vectorstore.pgvector.dimensions=768
 spring.ai.vectorstore.pgvector.initialize-schema=true
 
-# --- Desativa a auto-configuracao do Chroma por enquanto (evita o conflito ---
-# --- de bean 'vectorStore' com o pgvector). So reative na Fase 4, quando ---
-# --- for comparar os dois bancos vetoriais. ---
-spring.autoconfigure.exclude=org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreAutoConfiguration
+# --- Vector store: ChromaDB (objetivo c: comparacao pgvector x ChromaDB) ---
+# O Chroma sobe por autoconfigure. Ele sobe junto com o app via docker compose.
+spring.ai.vectorstore.chroma.client.host=http://localhost
+spring.ai.vectorstore.chroma.client.port=8000
+spring.ai.vectorstore.chroma.collection-name=tc_corporate_rag
+spring.ai.vectorstore.chroma.initialize-schema=true
+
+# --- Os autoconfigures do pgvector e do Chroma NAO podem coexistir (os dois ---
+# --- registram um bean 'vectorStore'). Por isso o do pgvector e excluido e o ---
+# --- PgVectorStore e montado em config/VectorStoreConfig, lendo as propriedades ---
+# --- spring.ai.vectorstore.pgvector.* acima. ---
+spring.autoconfigure.exclude=org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
+
+# --- Parametros da recuperacao (iguais nos dois bancos, para comparacao justa) ---
+rag.top-k=4
+rag.similarity-threshold=0.0
 
 # --- Integracao com Docker Compose ---
 spring.docker.compose.enabled=true

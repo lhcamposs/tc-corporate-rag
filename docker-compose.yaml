@@ -55,15 +55,15 @@ services:
       retries: 5
 
   chromadb:
-    image: chromadb/chroma:latest
+    # Versao fixada (reprodutibilidade do experimento) - a mesma usada na documentacao do Spring AI.
+    image: ghcr.io/chroma-core/chroma:1.0.0
     container_name: chromadb
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - chroma_data:/chroma/chroma
-    # Ative este serviço quando entrar na Fase 4 (comparação pgvector x ChromaDB).
-    # Pode comentar o serviço inteiro enquanto o foco é só o pipeline com pgvector.
+      - chroma_data:/data
+    # Segundo banco vetorial do objetivo (c): comparacao pgvector x ChromaDB (?store=chroma).
 
 volumes:
   ollama_data:

@@ -22,7 +22,7 @@ public class RelationalIngestionController {
 
     /**
      * POST /api/relational/ingest
-     * Lê todos os registros da tabela artigo_conhecimento, gera embeddings
+     * Lê all os registros da tabela artigo_conhecimento, gera embeddings
      * e indexa no pgvector (além de salvar em document_chunk, para a
      * baseline lexical).
      */

@@ -2,9 +2,13 @@ package com.lhcamposs.tc_corporate_rag.controllers;
 
 import com.lhcamposs.tc_corporate_rag.dto.QueryRequest;
 import com.lhcamposs.tc_corporate_rag.dto.QueryResponse;
+import com.lhcamposs.tc_corporate_rag.dto.RagResponse;
+import com.lhcamposs.tc_corporate_rag.dto.RecoveredSource;
 import com.lhcamposs.tc_corporate_rag.services.LexicalSearchService;
 import com.lhcamposs.tc_corporate_rag.services.RagQueryService;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreType;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -35,23 +39,36 @@ public class QueryController {
 
     @Operation(
             summary = "Consulta via RAG",
-            description = "Recupera os trechos mais relevantes no pgvector e gera uma resposta em linguagem natural via LLM (Ollama)."
+            description = "Recupera os trechos mais relevantes no banco vetorial escolhido (pgvector ou ChromaDB) e gera uma "
+                    + "resposta em linguagem natural via LLM (Ollama). Devolve também os trechos usados (fontes) e os "
+                    + "tempos de recuperação e de geração separados."
     )
     @PostMapping
-    public ResponseEntity<QueryResponse> consultarRag(@Valid @RequestBody QueryRequest request) {
+    public ResponseEntity<QueryResponse> consultarRag(
+            @Valid @RequestBody QueryRequest request,
+            @Parameter(description = "Banco vetorial usado na recuperação: pgvector (padrão) ou chroma.", example = "pgvector")
+            @RequestParam(defaultValue = "pgvector") String store) {
+        VectorStoreType tipoStore = VectorStoreType.from(store);
+
         long inicio = System.currentTimeMillis();
-        String resposta = ragQueryService.responder(request.pergunta());
+        RagResponse resultado = ragQueryService.responder(request.pergunta(), tipoStore);
         long duracao = System.currentTimeMillis() - inicio;
 
-        return ResponseEntity.ok(new QueryResponse(resposta, duracao));
+        return ResponseEntity.ok(new QueryResponse(
+                resultado.resposta(),
+                tipoStore.getNome(),
+                resultado.fontes(),
+                resultado.tempoRecuperacaoMs(),
+                resultado.tempoGeracaoMs(),
+                duracao));
     }
 
     @Operation(
             summary = "Busca lexical (baseline)",
-            description = "Busca por termo via SQL LIKE, usada como baseline de comparação com o RAG na Fase 4."
+            description = "Busca por palavras-chave via full-text search do PostgreSQL (sem acento, stemming em português, ranqueada por relevância), usada como baseline de comparação com o RAG na Fase 4. Cada resultado traz o vectorId do chunk."
     )
     @GetMapping("/baseline")
-    public ResponseEntity<List<String>> consultarBaseline(
+    public ResponseEntity<List<RecoveredSource>> consultarBaseline(
             @RequestParam @NotBlank(message = "O termo de busca não pode estar vazio.") String termo) {
         return ResponseEntity.ok(lexicalSearchService.buscarPorTermo(termo));
     }

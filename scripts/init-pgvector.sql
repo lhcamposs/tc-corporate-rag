@@ -7,17 +7,46 @@
 CREATE
 EXTENSION IF NOT EXISTS vector;
 
--- Tabela para busca lexical (baseline)
--- UNIQUE (source_file, chunk_index) é o que torna a ingestão idempotente:
--- reingerir o mesmo arquivo atualiza as linhas (ON CONFLICT) em vez de duplicar.
+-- ---------------------------------------------------------------------
+-- Busca lexical (baseline) com full-text search do PostgreSQL.
+-- Bancos já existentes: aplique db/migrations/002_baseline_lexical_fts.sql.
+-- ---------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- Configuração 'pt_unaccent': igual à 'portuguese', mas remove acentos antes do
+-- stemming. Necessária porque unaccent() sozinha não é IMMUTABLE e não pode ser
+-- usada em coluna gerada nem em índice.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_ts_config WHERE cfgname = 'pt_unaccent') THEN
+        CREATE TEXT SEARCH CONFIGURATION pt_unaccent (COPY = portuguese);
+        ALTER TEXT SEARCH CONFIGURATION pt_unaccent
+            ALTER MAPPING FOR hword, hword_part, word
+            WITH unaccent, portuguese_stem;
+END IF;
+END
+$$;
+
+-- Tabela para busca lexical (baseline).
+-- UNIQUE (source_file, chunk_index) torna a ingestão idempotente: reingerir o mesmo
+-- arquivo atualiza as linhas (ON CONFLICT) em vez de duplicar.
 -- Para bancos já existentes, aplique db/migrations/001_ingestao_idempotente.sql.
 CREATE TABLE IF NOT EXISTS document_chunk (
                                               id SERIAL PRIMARY KEY,
                                               source_file TEXT NOT NULL,
                                               chunk_index INT NOT NULL,
+    -- Mesmo ID do chunk no pgvector e no ChromaDB (rastreio por chunk).
+    -- Bancos existentes: db/migrations/003_rastreio_por_chunk.sql.
+                                              vector_id UUID NOT NULL,
                                               content TEXT NOT NULL,
-                                              CONSTRAINT uq_document_chunk_source_index UNIQUE (source_file, chunk_index)
-);
+                                              content_tsv tsvector
+                                              GENERATED ALWAYS AS (to_tsvector('pt_unaccent', content)) STORED,
+    CONSTRAINT uq_document_chunk_source_index UNIQUE (source_file, chunk_index),
+    CONSTRAINT uq_document_chunk_vector_id UNIQUE (vector_id)
+    );
+
+CREATE INDEX IF NOT EXISTS idx_document_chunk_content_tsv
+    ON document_chunk USING GIN (content_tsv);
 
 -- ---------------------------------------------------------------------
 -- Base relacional de exemplo (objetivo específico (b) da proposta).
@@ -50,4 +79,4 @@ VALUES ('RH', 'Política de Férias',
 -- O Spring AI, ao inicializar o VectorStore (com initialize-schema: true no
 -- application.properties), cria a tabela de embeddings automaticamente. Este
 -- script só garante que a extensão pgvector e as tabelas-fonte já estão
--- disponíveis antes disso.
+-- disponíveis antes disso.

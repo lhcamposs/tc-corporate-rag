@@ -2,6 +2,7 @@ package com.lhcamposs.tc_corporate_rag.services;
 
 import com.lhcamposs.tc_corporate_rag.exceptions.LexicalSearchException;
 import com.lhcamposs.tc_corporate_rag.exceptions.LlmIntegrationException;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreType;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
@@ -24,9 +25,14 @@ import java.util.UUID;
  *  1. Cada chunk recebe um ID determinístico (fonte + posição). O PgVectorStore
  *     faz UPSERT por ID, então reingerir atualiza o vetor em vez de duplicar.
  *  2. A tabela lexical tem UNIQUE (source_file, chunk_index) e usa
- *     INSERT ... ON CONFLICT DO UPDATE.
+ *     INSERT ... ON CONFLICT DO UPDATE. Ela guarda também o vector_id: o MESMO
+ *     ID usado no pgvector e no ChromaDB, o que dá rastreio por chunk entre
+ *     os três métodos de busca (gabarito único para a avaliação).
  *  3. Chunks que sobraram de uma versão anterior maior da fonte (ex.: o PDF
  *     encolheu) são removidos nos dois armazenamentos.
+ *
+ * A gravação é feita em TODOS os bancos vetoriais disponíveis (pgvector e, se
+ * habilitado, ChromaDB), para que os dois tenham exatamente o mesmo corpus.
  *
  * A ordem é "gravar o novo e só depois apagar o antigo": se algo falhar no
  * meio, o índice nunca fica vazio e uma nova execução converge para o estado
@@ -35,8 +41,9 @@ import java.util.UUID;
 final class IngestionSupport {
 
     static final String LEXICAL_UPSERT_SQL =
-            "INSERT INTO document_chunk (source_file, chunk_index, content) VALUES (?, ?, ?) "
-                    + "ON CONFLICT (source_file, chunk_index) DO UPDATE SET content = EXCLUDED.content";
+            "INSERT INTO document_chunk (source_file, chunk_index, vector_id, content) VALUES (?, ?, ?::uuid, ?) "
+                    + "ON CONFLICT (source_file, chunk_index) DO UPDATE "
+                    + "SET vector_id = EXCLUDED.vector_id, content = EXCLUDED.content";
 
     static final String LEXICAL_DELETE_STALE_SQL =
             "DELETE FROM document_chunk WHERE source_file = ? AND chunk_index >= ?";
@@ -80,25 +87,30 @@ final class IngestionSupport {
     }
 
     /**
-     * Grava os documentos (já com ID estável) no vector store e na tabela
-     * lexical e remove o que ficou obsoleto nos dois.
+     * Grava os documentos (já com ID estável) em todos os bancos vetoriais e na
+     * tabela lexical e remove o que ficou obsoleto em todos eles.
+     * Se um dos bancos falhar, os demais podem já ter sido atualizados; rodar a
+     * ingestão de novo converge todos para o mesmo estado (idempotência).
      */
-    static void sincronizar(VectorStore vectorStore, JdbcTemplate jdbcTemplate,
-                            String fonte, List<Document> documentos) {
-        try {
-            if (!documentos.isEmpty()) {
-                vectorStore.add(documentos); // UPSERT por ID
+    static void sync(Map<VectorStoreType, VectorStore> vectorStores, JdbcTemplate jdbcTemplate,
+                     String fonte, List<Document> documentos) {
+        for (Map.Entry<VectorStoreType, VectorStore> entrada : vectorStores.entrySet()) {
+            try {
+                if (!documentos.isEmpty()) {
+                    entrada.getValue().add(documentos); // UPSERT por ID
+                }
+                entrada.getValue().delete(filtroChunksObsoletos(fonte, documentos.size()));
+            } catch (Exception e) {
+                throw new LlmIntegrationException(
+                        "Failed to generate embeddings or update the vector store '" + entrada.getKey().getNome()
+                                + "' for source '" + fonte + "'. Check if the store and the LLM model are running.", e);
             }
-            vectorStore.delete(filtroChunksObsoletos(fonte, documentos.size()));
-        } catch (Exception e) {
-            throw new LlmIntegrationException(
-                    "Failed to generate embeddings or update the vector store for source '" + fonte
-                            + "'. Check if the LLM model is running.", e);
         }
 
         try {
             for (int i = 0; i < documentos.size(); i++) {
-                jdbcTemplate.update(LEXICAL_UPSERT_SQL, fonte, i, documentos.get(i).getText());
+                Document documento = documentos.get(i);
+                jdbcTemplate.update(LEXICAL_UPSERT_SQL, fonte, i, documento.getId(), documento.getText());
             }
             jdbcTemplate.update(LEXICAL_DELETE_STALE_SQL, fonte, documentos.size());
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package com.lhcamposs.tc_corporate_rag.services;
 
 import com.lhcamposs.tc_corporate_rag.exceptions.DocumentProcessingException;
 import org.springframework.ai.document.Document;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreRegistry;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,11 @@ public class RelationalIngestionService {
     private static final String SELECT_REGISTROS =
             "SELECT id, category, title, content FROM artigo_conhecimento ORDER BY id";
 
-    private final VectorStore vectorStore;
+    private final VectorStoreRegistry vectorStoreRegistry;
     private final JdbcTemplate jdbcTemplate;
 
-    public RelationalIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
-        this.vectorStore = vectorStore;
+    public RelationalIngestionService(VectorStoreRegistry vectorStoreRegistry, JdbcTemplate jdbcTemplate) {
+        this.vectorStoreRegistry = vectorStoreRegistry;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -43,10 +44,10 @@ public class RelationalIngestionService {
         // de TokenTextSplitter aqui, diferente dos PDFs (IngestionService).
         List<Document> identificados = IngestionSupport.comIdentidadeEstavel(documentos, FONTE, "relational");
 
-        // 3. Upsert no pgvector e em document_chunk (baseline lexical), removendo
+        // 3. Upsert nos bancos vetoriais e em document_chunk (baseline lexical), removendo
         // o que não existe mais na tabela. Se a tabela estiver vazia, o índice
         // dessa fonte também é esvaziado, e rodar de novo não muda nada (idempotente).
-        IngestionSupport.sincronizar(vectorStore, jdbcTemplate, FONTE, identificados);
+        IngestionSupport.sync(vectorStoreRegistry.all(), jdbcTemplate, FONTE, identificados);
 
         return identificados.size();
     }

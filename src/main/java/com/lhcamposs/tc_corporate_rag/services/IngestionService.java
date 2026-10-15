@@ -4,7 +4,7 @@ import com.lhcamposs.tc_corporate_rag.exceptions.DocumentProcessingException;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.ai.vectorstore.VectorStore;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreRegistry;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Responsável pelo pipeline de ingestão:
- *   PDF -> extração de texto -> chunking -> embeddings -> pgvector
+ *   PDF -> extração de texto -> chunking -> embeddings -> bancos vetoriais (pgvector e ChromaDB)
  *
  * Além de salvar no VectorStore (para a busca semântica), também guarda os
  * chunks em texto puro numa tabela relacional (document_chunk) — é isso que
@@ -26,11 +26,11 @@ import java.util.List;
 @Service
 public class IngestionService {
 
-    private final VectorStore vectorStore;
+    private final VectorStoreRegistry vectorStoreRegistry;
     private final JdbcTemplate jdbcTemplate;
 
-    public IngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
-        this.vectorStore = vectorStore;
+    public IngestionService(VectorStoreRegistry vectorStoreRegistry, JdbcTemplate jdbcTemplate) {
+        this.vectorStoreRegistry = vectorStoreRegistry;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -56,9 +56,9 @@ public class IngestionService {
             throw new DocumentProcessingException("Failed to extract and fragment text from the PDF document: " + nomeArquivo, e);
         }
 
-        // 4. Gera embeddings + upsert no pgvector e na tabela lexical,
+        // 4. Gera embeddings + upsert nos bancos vetoriais e na tabela lexical,
         //    removendo chunks obsoletos de versões anteriores do mesmo arquivo
-        IngestionSupport.sincronizar(vectorStore, jdbcTemplate, nomeArquivo, chunks);
+        IngestionSupport.sync(vectorStoreRegistry.all(), jdbcTemplate, nomeArquivo, chunks);
 
         return chunks.size();
     }
