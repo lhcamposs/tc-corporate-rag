@@ -214,6 +214,21 @@ class IngestionServiceTest {
      * PagePdfDocumentReader e o TokenTextSplitter de verdade, sem mocks
      * e sem arquivos externos.
      */
+    @Test
+    void ingestPdf_DeveNormalizarEspacosRepetidosNosChunks() throws IOException {
+        // Arrange: texto com espaços de preenchimento, como o extraído de PDFs com colunas
+        Resource pdf = criarPdf("Politica      de     Ferias", "Colaboradores       tem    direito    a    30    dias.");
+
+        // Act
+        ingestionService.ingestPdf(pdf, NOME_ARQUIVO);
+
+        // Assert: nenhum chunk gravado contém dois espaços seguidos
+        verify(pgVectorStore).add(chunksCaptor.capture());
+        for (Document chunk : chunksCaptor.getValue()) {
+            assertFalse(chunk.getText().contains("  "), "Chunk com espaços repetidos: " + chunk.getText());
+        }
+    }
+
     private static Resource criarPdf(String... linhas) throws IOException {
         try (PDDocument documento = new PDDocument();
              ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
