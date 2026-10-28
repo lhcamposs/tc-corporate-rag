@@ -55,7 +55,7 @@ Todas as propriedades também podem ser sobrescritas por variáveis de ambiente 
    docker-compose up -d
    ```
 
-   > **Banco já existente (criado antes das últimas mudanças)?** O script de inicialização só roda em volume novo. Aplique, uma vez e em ordem, os arquivos de `db/migrations/` (`001`, `002` e `003`) ou recrie o volume com `docker compose down -v`. As migrações 002 e 003 podem ser reexecutadas sem problema; a 001 apaga os vetores antigos e exige reingestão.
+   > **Banco já existente (criado antes das últimas mudanças)?** O script de inicialização só roda em volume novo. Aplique, uma vez e em ordem, os arquivos de `db/migrations/` (`001` a `004`) ou recrie o volume com `docker compose down -v`. As migrações 002, 003 e 004 podem ser reexecutadas sem problema; a 001 apaga os vetores antigos e exige reingestão, e a 004 troca os registros de `artigo_conhecimento` e exige chamar de novo o `POST /api/relational/ingest`.
 
 4. **Inicie a aplicação Spring Boot:**
    Utilize o Maven Wrapper já embutido no repositório.
@@ -90,7 +90,7 @@ curl --location 'http://localhost:8080/api/documents/upload' \
 
 ### 2. Ingestão de Base Relacional
 
-Lê os registros da tabela `artigo_conhecimento` (uma base estruturada de exemplo — artigos de wiki interna, FAQs, políticas), gera os embeddings e indexa nos bancos vetoriais, fechando o objetivo de ingestão a partir de fontes estruturadas além dos PDFs.
+Lê os registros da tabela `artigo_conhecimento` (uma base estruturada de exemplo, no formato de perguntas frequentes, com registros redigidos a partir dos documentos públicos do IF Goiano), gera os embeddings e indexa nos bancos vetoriais, fechando o objetivo de ingestão a partir de fontes estruturadas além dos PDFs.
 
 ```bash
 curl --location --request POST 'http://localhost:8080/api/relational/ingest'
@@ -139,7 +139,7 @@ O `vectorId` é o mesmo no pgvector, no ChromaDB e na baseline lexical, então o
 
 Busca por palavras-chave usando o full-text search nativo do PostgreSQL (`tsvector` + `ts_rank`), servindo como baseline de avaliação para a métrica de comparação do TCC. Ignora acentos (`ferias` encontra "férias"), aplica stemming em português, descarta stopwords e devolve os trechos ordenados por relevância (até 10), cada um com o `vectorId` do chunk. Os termos são combinados com OR, então também aceita perguntas em linguagem natural.
 
-> Em bancos criados antes desta versão, aplique as migrações de `db/migrations/` (001, 002 e 003), uma vez, na ordem.
+> Em bancos criados antes desta versão, aplique as migrações de `db/migrations/` (001 a 004), uma vez, na ordem.
 
 ```bash
 curl --location 'http://localhost:8080/api/query/baseline?termo=ferias'
