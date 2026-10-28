@@ -48,6 +48,9 @@ spring.docker.compose.enabled=true
 spring.sql.init.mode=always
 spring.jpa.hibernate.ddl-auto=none
 
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
+
 server.port=8080
 
 logging.level.org.springframework.ai=DEBUG
