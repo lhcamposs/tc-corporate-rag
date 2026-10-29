@@ -33,3 +33,5 @@ target/
 
 # Configuração local com credenciais (usar application.properties.example como base)
 src/main/resources/application.properties
+# Script de avaliação
+avaliacao/__pycache__/

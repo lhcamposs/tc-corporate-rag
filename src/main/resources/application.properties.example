@@ -9,7 +9,7 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 
 # --- Ollama (embeddings + geracao de texto) ---
 spring.ai.ollama.base-url=http://localhost:11434
-spring.ai.ollama.chat.model=llama3.2:latest
+spring.ai.ollama.chat.model=llama3.2:3b
 spring.ai.ollama.embedding.model=nomic-embed-text
 
 # --- HikariCP Configuration ---
@@ -40,6 +40,8 @@ spring.autoconfigure.exclude=org.springframework.ai.vectorstore.pgvector.autocon
 # --- Parametros da recuperacao (iguais nos dois bancos, para comparacao justa) ---
 rag.top-k=4
 rag.similarity-threshold=0.0
+# Temperatura 0: geracao deterministica (mesma pergunta + mesmos trechos = mesma resposta)
+rag.temperatura=0.0
 
 # --- Integracao com Docker Compose ---
 spring.docker.compose.enabled=true
@@ -53,4 +55,5 @@ spring.servlet.multipart.max-request-size=50MB
 
 server.port=8080
 
-logging.level.org.springframework.ai=DEBUG
+# DEBUG mostra os prompts, mas distorce os tempos: use INFO durante as medicoes do experimento
+logging.level.org.springframework.ai=INFO

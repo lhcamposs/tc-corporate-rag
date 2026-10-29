@@ -44,7 +44,7 @@ class RagQueryServiceTest {
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         // Inicializa manualmente devido aos parâmetros @Value
-        ragQueryService = new RagQueryService(chatClient, vectorStoreRegistry, 4, 0.0);
+        ragQueryService = new RagQueryService(chatClient, vectorStoreRegistry, 4, 0.0, 0.0);
     }
 
     @Test
@@ -64,6 +64,20 @@ class RagQueryServiceTest {
 
         assertEquals(respostaEsperada, respostaObtida.resposta());
         verify(vectorStoreRegistry).get(VectorStoreType.PGVECTOR);
+    }
+
+    @Test
+    void gerar_DeveEnviarTemperaturaConfigurada_ParaQueARespostaSejaDeterministica() {
+        when(chatClient.prompt(any(org.springframework.ai.chat.prompt.Prompt.class))).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(responseSpec);
+        when(responseSpec.content()).thenReturn("ok");
+
+        ragQueryService.gerar("Pergunta?", List.of());
+
+        org.mockito.ArgumentCaptor<org.springframework.ai.chat.prompt.Prompt> captor =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.ai.chat.prompt.Prompt.class);
+        verify(chatClient).prompt(captor.capture());
+        assertEquals(0.0, captor.getValue().getOptions().getTemperature());
     }
 
     @Test

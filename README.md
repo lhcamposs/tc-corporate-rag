@@ -69,6 +69,10 @@ Todas as propriedades também podem ser sobrescritas por variáveis de ambiente 
 
    A aplicação iniciará na porta **8080**.
 
+## 🧪 Experimento (avaliação)
+
+O protocolo de avaliação da monografia (Seção 3.9) é executado pelo script [`avaliacao/avaliar.py`](avaliacao/README.md), que usa os endpoints `/api/avaliacao/*`: recuperação isolada nos três métodos (pgvector, ChromaDB e lexical), geração do teto com os trechos do gabarito e exportação dos trechos para anotação. A geração usa temperatura 0 (`rag.temperatura`), para que a mesma pergunta com os mesmos trechos produza sempre a mesma resposta.
+
 ## 📚 Documentação e Swagger UI
 
 Com a aplicação rodando, você pode acessar a interface interativa do Swagger para testar os endpoints sem necessidade do terminal:

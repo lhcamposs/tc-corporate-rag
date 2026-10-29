@@ -60,8 +60,13 @@ public class LexicalSearchService {
     }
 
     public List<RecoveredSource> buscarPorTermo(String termo) {
+        return buscarPorTermo(termo, LIMITE_RESULTADOS);
+    }
+
+    /** Mesma busca, com o número de resultados escolhido (usado pela avaliação). */
+    public List<RecoveredSource> buscarPorTermo(String termo, int limite) {
         try {
-            return jdbcTemplate.query(BUSCA_SQL, LexicalSearchService::mapear, termo, LIMITE_RESULTADOS);
+            return jdbcTemplate.query(BUSCA_SQL, LexicalSearchService::mapear, termo, limite);
         } catch (DataAccessException e) {
             throw new LexicalSearchException("Failed to search for term in the relational database.", e);
         }

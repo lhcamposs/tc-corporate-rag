@@ -8,6 +8,7 @@ import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreType;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -46,27 +47,53 @@ public class RagQueryService {
     private final int topK;
     private final double similarityThreshold;
 
+    /**
+     * Temperatura da geração. O padrão 0 torna a resposta determinística: a mesma
+     * pergunta com os mesmos trechos gera sempre o mesmo texto, o que é exigido
+     * pelo protocolo de avaliação (reprodutibilidade e comparação pgvector x ChromaDB).
+     */
+    private final double temperatura;
+
     public RagQueryService(ChatClient chatClient,
                            VectorStoreRegistry vectorStoreRegistry,
                            @Value("${rag.top-k:4}") int topK,
-                           @Value("${rag.similarity-threshold:0.0}") double similarityThreshold) {
+                           @Value("${rag.similarity-threshold:0.0}") double similarityThreshold,
+                           @Value("${rag.temperatura:0.0}") double temperatura) {
         this.chatClient = chatClient;
         this.vectorStoreRegistry = vectorStoreRegistry;
         this.topK = topK;
         this.similarityThreshold = similarityThreshold;
+        this.temperatura = temperatura;
     }
 
     public RagResponse responder(String pergunta, VectorStoreType tipoStore) {
-        // Lança VectorStoreNotAvailableException (400) se o banco não estiver habilitado
-        VectorStore vectorStore = vectorStoreRegistry.get(tipoStore);
-
         // 1. Recuperação
         long inicioRecuperacao = System.nanoTime();
+        List<Document> documentos = recuperar(pergunta, tipoStore, topK);
+        long fimRecuperacao = System.nanoTime();
+
+        // 2. Geração
+        String response = gerar(pergunta, documentos);
+        long fimGeracao = System.nanoTime();
+
+        List<RecoveredSource> fontes = documentos.stream().map(RecoveredSource::of).toList();
+        return new RagResponse(response, fontes,
+                (fimRecuperacao - inicioRecuperacao) / 1_000_000,
+                (fimGeracao - fimRecuperacao) / 1_000_000);
+    }
+
+    /**
+     * Busca os k trechos mais próximos da pergunta no banco vetorial escolhido.
+     * Usado pela consulta RAG (k = rag.top-k) e pela avaliação (k maior, para Recall@10 e MRR@10).
+     */
+    public List<Document> recuperar(String pergunta, VectorStoreType tipoStore, int k) {
+        // Lança VectorStoreNotAvailableException (400) se o banco não estiver habilitado
+        VectorStore vectorStore = vectorStoreRegistry.get(tipoStore);
         List<Document> documentos;
         try {
             documentos = vectorStore.similaritySearch(SearchRequest.builder()
                     .query(pergunta)
-                    .topK(topK)
+                    .topK(k)
                     .similarityThreshold(similarityThreshold)
                     .build());
         } catch (Exception e) {
@@ -74,30 +101,26 @@ public class RagQueryService {
                     "Failed to retrieve context from the vector store '" + tipoStore.getNome()
                             + "'. Check if the store and the embedding model (e.g., Ollama) are running.", e);
         }
-        if (documentos == null) {
-            documentos = List.of();
-        }
-        long fimRecuperacao = System.nanoTime();
+        return documentos == null ? List.of() : documentos;
+    }
 
-        // 2. Geração
-        String response;
+    /**
+     * Gera a resposta usando apenas os trechos informados como contexto. Usado pela
+     * consulta RAG e pela avaliação do teto (trechos do gabarito no lugar dos recuperados).
+     */
+    public String gerar(String pergunta, List<Document> documentos) {
         try {
             Prompt prompt = new Prompt(List.of(
                     SystemMessage.builder().text(SYSTEM_PROMPT).build(),
-                    UserMessage.builder().text(montarMensagemDoUsuario(pergunta, documentos)).build()));
-            response = chatClient.prompt(prompt).call().content();
+                    UserMessage.builder().text(montarMensagemDoUsuario(pergunta, documentos)).build()),
+                    ChatOptions.builder().temperature(temperatura).build());
+            return chatClient.prompt(prompt).call().content();
         } catch (Exception e) {
             throw new LlmIntegrationException(
                     "Failed to generate a response using the language model. Check if the service (e.g., Ollama) is running and accessible.",
                     e
             );
         }
-        long fimGeracao = System.nanoTime();
-
-        List<RecoveredSource> fontes = documentos.stream().map(RecoveredSource::of).toList();
-        return new RagResponse(response, fontes,
-                (fimRecuperacao - inicioRecuperacao) / 1_000_000,
-                (fimGeracao - fimRecuperacao) / 1_000_000);
     }
 
     /**
