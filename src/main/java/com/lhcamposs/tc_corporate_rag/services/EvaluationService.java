@@ -89,7 +89,7 @@ public class EvaluationService {
         long tempoGeracaoMs = (System.nanoTime() - inicio) / 1_000_000;
 
         List<RecoveredSource> fontes = documentos.stream().map(RecoveredSource::of).toList();
-        return new QueryResponse(resposta, "teto", fontes, 0, tempoGeracaoMs, tempoGeracaoMs);
+        return new QueryResponse(resposta, "ceiling", fontes, 0, tempoGeracaoMs, tempoGeracaoMs);
     }
 
     public List<RecoveredSource> listarTrechos() {

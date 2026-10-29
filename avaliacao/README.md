@@ -62,7 +62,7 @@ docker exec chromadb du -sh /data
 
 ## Endpoints usados
 
-- `POST /api/avaliacao/recuperar?metodo=pgvector|chroma|lexical&k=10`: só a recuperação.
+- `POST /api/evaluation/retrieve?method=pgvector|chroma|lexical&k=10`: só a recuperação.
 - `POST /api/query?store=pgvector|chroma`: a consulta RAG normal (k = `rag.top-k` = 4).
-- `POST /api/avaliacao/teto`: resposta gerada com os trechos do gabarito (`{"pergunta": "...", "vectorIds": ["..."]}`).
-- `GET /api/avaliacao/trechos`: todos os trechos da base.
+- `POST /api/evaluation/ceiling`: resposta gerada com os trechos do gabarito (`{"pergunta": "...", "vectorIds": ["..."]}`).
+- `GET /api/evaluation/chunks`: todos os trechos da base.

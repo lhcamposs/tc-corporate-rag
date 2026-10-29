@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 /** Pergunta e trechos do gabarito, para medir o teto (pontuação máxima relativa) do modelo. */
-public record TetoRequest(
+public record CeilingRequest(
 
         @Schema(description = "Pergunta em linguagem natural.", example = "Quantos dias de férias tem um docente EBTT?")
         @NotBlank(message = "A pergunta não pode estar vazia.")

@@ -106,16 +106,16 @@ class Api:
             raise RuntimeError(f"Não foi possível acessar {url}: {e.reason}. A aplicação está rodando?") from None
 
     def trechos(self):
-        return self._req("GET", "/api/avaliacao/trechos")
+        return self._req("GET", "/api/evaluation/chunks")
 
     def recuperar(self, pergunta: str, metodo: str, k: int):
-        return self._req("POST", "/api/avaliacao/recuperar", {"pergunta": pergunta}, {"metodo": metodo, "k": k})
+        return self._req("POST", "/api/evaluation/retrieve", {"pergunta": pergunta}, {"method": metodo, "k": k})
 
     def consultar(self, pergunta: str, store: str):
         return self._req("POST", "/api/query", {"pergunta": pergunta}, {"store": store})
 
     def teto(self, pergunta: str, vector_ids: list[str]):
-        return self._req("POST", "/api/avaliacao/teto", {"pergunta": pergunta, "vectorIds": vector_ids})
+        return self._req("POST", "/api/evaluation/ceiling", {"pergunta": pergunta, "vectorIds": vector_ids})
 
 
 # ----------------------------------------------------------------------------- planilhas
