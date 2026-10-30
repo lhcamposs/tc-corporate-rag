@@ -1,0 +1,16 @@
+﻿config;grupo;n_com_resposta;nota_media;taxa_fundamentadas;taxa_alucinacao;n_sem_resposta;taxa_informou_ausencia;degradacao_vs_teto
+pgvector;geral;0;nan;nan;nan;0;nan;nan
+chroma;geral;0;nan;nan;nan;0;nan;nan
+teto;geral;0;nan;nan;nan;0;nan;nan
+pgvector;literal;0;nan;nan;nan;0;nan;nan
+chroma;literal;0;nan;nan;nan;0;nan;nan
+teto;literal;0;nan;nan;nan;0;nan;nan
+pgvector;parafrase;0;nan;nan;nan;0;nan;nan
+chroma;parafrase;0;nan;nan;nan;0;nan;nan
+teto;parafrase;0;nan;nan;nan;0;nan;nan
+pgvector;relacional;0;nan;nan;nan;0;nan;nan
+chroma;relacional;0;nan;nan;nan;0;nan;nan
+teto;relacional;0;nan;nan;nan;0;nan;nan
+pgvector;pdf;0;nan;nan;nan;0;nan;nan
+chroma;pdf;0;nan;nan;nan;0;nan;nan
+teto;pdf;0;nan;nan;nan;0;nan;nan
