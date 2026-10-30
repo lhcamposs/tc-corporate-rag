@@ -23,6 +23,7 @@ import random
 import statistics
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -574,6 +575,20 @@ def montar_planilha_cega(perguntas: list[dict], feitas: dict, semente: int):
     print(f"  Não abra {ARQ_CHAVE} antes de terminar as notas: ele diz qual método gerou cada resposta.")
 
 
+def _sim_nao(valor) -> str:
+    """Aceita 'sim', 'nao', 'não', com maiúsculas ou espaços."""
+    texto = unicodedata.normalize("NFKD", str(valor or "")).encode("ascii", "ignore").decode().strip().lower()
+    return texto if texto in ("sim", "nao") else ""
+
+
+def _nota(valor):
+    try:
+        n = int(float(str(valor).replace(",", ".")))
+    except (TypeError, ValueError):
+        return None
+    return n if n in NOTAS_VALIDAS else None
+
+
 def cmd_notas(args, _api=None):
     perguntas = {p["id"]: p for p in ler_gabarito(Path(args.gabarito)) if p["pergunta"]}
     ws = load_workbook(RESULTADOS / ARQ_CEGA, data_only=True)["Avaliacao"]
@@ -585,9 +600,9 @@ def cmd_notas(args, _api=None):
         if not reg.get("id_cego"):
             continue
         sem = reg.get("sem_resposta_na_base") == "sim"
-        nota = reg.get("nota")
-        fund = (reg.get("fundamentada") or "").strip().lower()
-        aus = (reg.get("informou_ausencia") or "").strip().lower()
+        nota = _nota(reg.get("nota"))
+        fund = _sim_nao(reg.get("fundamentada"))
+        aus = _sim_nao(reg.get("informou_ausencia"))
         if (not sem and nota not in NOTAS_VALIDAS) or fund not in ("sim", "nao") or (sem and aus not in ("sim", "nao")):
             pendentes.append(reg["id_cego"])
         avaliacoes[reg["id_cego"]] = {"nota": nota, "fundamentada": fund, "informou_ausencia": aus}
