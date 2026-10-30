@@ -22,19 +22,11 @@ import java.util.List;
  */
 final class PdfTextCleaner {
 
-    /** Abaixo disso (em caracteres, já normalizado) o chunk é unido ao vizinho. */
     static final int MIN_CHARS_CHUNK = 300;
 
     private PdfTextCleaner() {
     }
 
-    // ------------------------------------------------------------ texto puro
-
-    /**
-     * Remove caracteres invisíveis, colapsa espaços repetidos dentro de cada
-     * linha, apara as linhas e limita a no máximo uma linha em branco seguida.
-     * Preserva as quebras de linha (estrutura de listas e títulos).
-     */
     static String normalizar(String texto) {
         if (texto == null) {
             return "";
@@ -54,12 +46,6 @@ final class PdfTextCleaner {
                 .strip();
     }
 
-    /**
-     * Une cada texto com menos de {@code minChars} caracteres ao vizinho
-     * anterior (separados por quebra de linha). Se o curto for o primeiro,
-     * une-o ao seguinte. Textos vazios são descartados. Se só restar um
-     * texto, ele é mantido mesmo que curto.
-     */
     static List<String> unirCurtos(List<String> textos, int minChars) {
         List<String> resultado = new ArrayList<>();
         for (List<Integer> grupo : agrupar(textos, minChars)) {
@@ -75,11 +61,6 @@ final class PdfTextCleaner {
         return resultado;
     }
 
-    /**
-     * Decide quais posições da lista se juntam num mesmo chunk. Cada grupo é
-     * uma lista de índices em ordem; o primeiro índice do grupo é quem fornece
-     * os metadados do chunk final.
-     */
     private static List<List<Integer>> agrupar(List<String> textos, int minChars) {
         List<List<Integer>> grupos = new ArrayList<>();
         List<Integer> tamanhos = new ArrayList<>();
@@ -97,7 +78,6 @@ final class PdfTextCleaner {
                 tamanhos.add(atual.length());
             }
         }
-        // O primeiro grupo pode ter ficado curto (não havia anterior): une ao seguinte
         if (grupos.size() > 1 && tamanhos.get(0) < minChars) {
             List<Integer> primeiro = grupos.remove(0);
             primeiro.addAll(grupos.get(0));
@@ -106,9 +86,6 @@ final class PdfTextCleaner {
         return grupos;
     }
 
-    // ------------------------------------------------------------- Document
-
-    /** Normaliza o texto de cada página, preservando os metadados e descartando páginas vazias. */
     static List<Document> normalizarDocumentos(List<Document> paginas) {
         List<Document> resultado = new ArrayList<>(paginas.size());
         for (Document pagina : paginas) {
@@ -124,10 +101,6 @@ final class PdfTextCleaner {
         return resultado;
     }
 
-    /**
-     * Une chunks curtos ao vizinho. O chunk resultante mantém os metadados do
-     * primeiro trecho do grupo.
-     */
     static List<Document> unirChunksCurtos(List<Document> chunks, int minChars) {
         List<String> textos = new ArrayList<>(chunks.size());
         for (Document chunk : chunks) {

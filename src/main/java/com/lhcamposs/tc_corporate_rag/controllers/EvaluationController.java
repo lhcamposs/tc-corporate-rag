@@ -22,8 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
-/** Endpoints usados pelo script de avaliação (avaliacao/avaliar.py). Não fazem parte do uso normal do sistema. */
+
 @RestController
 @RequestMapping("/api/evaluation")
 @Validated
@@ -54,6 +55,16 @@ public class EvaluationController {
     @PostMapping("/ceiling")
     public ResponseEntity<QueryResponse> ceiling(@Valid @RequestBody CeilingRequest request) {
         return ResponseEntity.ok(evaluationService.responderComGabarito(request.pergunta(), request.vectorIds()));
+    }
+
+    @Operation(summary = "Regera os vetores de todos os trechos",
+            description = "Recalcula os embeddings de todos os trechos da tabela document_chunk e grava no pgvector e no "
+                    + "ChromaDB com os mesmos IDs. Use depois de mudar rag.embedding.prefixos.")
+    @PostMapping("/reindex")
+    public ResponseEntity<Map<String, Object>> reindex() {
+        long inicio = System.currentTimeMillis();
+        int total = evaluationService.reindexar();
+        return ResponseEntity.ok(Map.of("trechosReindexados", total, "tempoMs", System.currentTimeMillis() - inicio));
     }
 
     @Operation(summary = "Lista todos os trechos", description = "Exporta os trechos da base (vectorId, arquivo, posição e texto) para a anotação do gabarito.")

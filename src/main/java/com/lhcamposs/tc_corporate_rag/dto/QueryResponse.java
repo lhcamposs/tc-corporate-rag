@@ -4,11 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-/**
- * Os tempos separados (recuperação x geração) atendem à avaliação de custo
- * computacional da Fase 4: a diferença entre pgvector e ChromaDB aparece em
- * tempoRecuperacaoMs, enquanto tempoGeracaoMs é dominado pelo LLM.
- */
 public record QueryResponse(
 
         @Schema(description = "Resposta gerada pelo LLM a partir do contexto recuperado.")

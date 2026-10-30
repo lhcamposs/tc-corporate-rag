@@ -51,16 +51,11 @@ final class IngestionSupport {
     private IngestionSupport() {
     }
 
-    /** ID estável (UUID v3) derivado da fonte e da posição do chunk. */
     static String idDoChunk(String fonte, int indice) {
         return UUID.nameUUIDFromBytes((fonte + "#" + indice).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    /**
-     * Devolve cópias dos documentos com ID determinístico e metadados de
-     * rastreio (source_file, chunk_index). Metadados já existentes são
-     * preservados; "source" só é definido se ainda não existir.
-     */
+
     static List<Document> comIdentidadeEstavel(List<Document> documentos, String fonte, String tipoFonte) {
         List<Document> resultado = new ArrayList<>(documentos.size());
         for (int i = 0; i < documentos.size(); i++) {
@@ -80,18 +75,11 @@ final class IngestionSupport {
         return resultado;
     }
 
-    /** Filtro que seleciona os chunks da fonte cuja posição passou do total atual. */
     static Filter.Expression filtroChunksObsoletos(String fonte, int totalAtual) {
         FilterExpressionBuilder b = new FilterExpressionBuilder();
         return b.and(b.eq("source_file", fonte), b.gte("chunk_index", totalAtual)).build();
     }
 
-    /**
-     * Grava os documentos (já com ID estável) em todos os bancos vetoriais e na
-     * tabela lexical e remove o que ficou obsoleto em todos eles.
-     * Se um dos bancos falhar, os demais podem já ter sido atualizados; rodar a
-     * ingestão de novo converge todos para o mesmo estado (idempotência).
-     */
     static void sync(Map<VectorStoreType, VectorStore> vectorStores, JdbcTemplate jdbcTemplate,
                      String fonte, List<Document> documentos) {
         for (Map.Entry<VectorStoreType, VectorStore> entrada : vectorStores.entrySet()) {

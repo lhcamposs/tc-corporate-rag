@@ -4,12 +4,15 @@ import com.lhcamposs.tc_corporate_rag.dto.QueryResponse;
 import com.lhcamposs.tc_corporate_rag.dto.RecoveredSource;
 import com.lhcamposs.tc_corporate_rag.dto.RetrievalResponse;
 import com.lhcamposs.tc_corporate_rag.exceptions.EvaluationInputException;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreRegistry;
 import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreType;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.document.Document;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,13 +44,37 @@ public class EvaluationService {
     private final RagQueryService ragQueryService;
     private final LexicalSearchService lexicalSearchService;
     private final JdbcTemplate jdbcTemplate;
+    private final VectorStoreRegistry vectorStoreRegistry;
 
     public EvaluationService(RagQueryService ragQueryService,
                              LexicalSearchService lexicalSearchService,
-                             JdbcTemplate jdbcTemplate) {
+                             JdbcTemplate jdbcTemplate,
+                             VectorStoreRegistry vectorStoreRegistry) {
         this.ragQueryService = ragQueryService;
         this.lexicalSearchService = lexicalSearchService;
         this.jdbcTemplate = jdbcTemplate;
+        this.vectorStoreRegistry = vectorStoreRegistry;
+    }
+
+    public int reindexar() {
+        List<Document> todos = jdbcTemplate.query(TODOS_TRECHOS_SQL, (rs, rowNum) -> {
+            String fonte = rs.getString("source_file");
+            return Document.builder()
+                    .id(rs.getString("vector_id"))
+                    .text(rs.getString("content"))
+                    .metadata(Map.of(
+                            "source", "artigo_conhecimento".equals(fonte) ? "relational" : "pdf",
+                            "source_file", fonte,
+                            "chunk_index", rs.getInt("chunk_index")))
+                    .build();
+        });
+        for (Map.Entry<VectorStoreType, VectorStore> entrada : vectorStoreRegistry.all().entrySet()) {
+            VectorStore store = entrada.getValue();
+            List<String> ids = todos.stream().map(Document::getId).toList();
+            store.delete(ids);
+            store.add(todos);
+        }
+        return todos.size();
     }
 
     public RetrievalResponse recuperar(String pergunta, String metodo, int k) {

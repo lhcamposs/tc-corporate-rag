@@ -47,11 +47,6 @@ public class RagQueryService {
     private final int topK;
     private final double similarityThreshold;
 
-    /**
-     * Temperatura da geração. O padrão 0 torna a resposta determinística: a mesma
-     * pergunta com os mesmos trechos gera sempre o mesmo texto, o que é exigido
-     * pelo protocolo de avaliação (reprodutibilidade e comparação pgvector x ChromaDB).
-     */
     private final double temperatura;
 
     public RagQueryService(ChatClient chatClient,
@@ -82,10 +77,6 @@ public class RagQueryService {
                 (fimGeracao - fimRecuperacao) / 1_000_000);
     }
 
-    /**
-     * Busca os k trechos mais próximos da pergunta no banco vetorial escolhido.
-     * Usado pela consulta RAG (k = rag.top-k) e pela avaliação (k maior, para Recall@10 e MRR@10).
-     */
     public List<Document> recuperar(String pergunta, VectorStoreType tipoStore, int k) {
         // Lança VectorStoreNotAvailableException (400) se o banco não estiver habilitado
         VectorStore vectorStore = vectorStoreRegistry.get(tipoStore);
@@ -104,10 +95,6 @@ public class RagQueryService {
         return documentos == null ? List.of() : documentos;
     }
 
-    /**
-     * Gera a resposta usando apenas os trechos informados como contexto. Usado pela
-     * consulta RAG e pela avaliação do teto (trechos do gabarito no lugar dos recuperados).
-     */
     public String gerar(String pergunta, List<Document> documentos) {
         try {
             Prompt prompt = new Prompt(List.of(
@@ -123,11 +110,6 @@ public class RagQueryService {
         }
     }
 
-    /**
-     * Monta o contexto numerado. A mensagem é entregue ao modelo como UserMessage
-     * pronta (sem passar por template), então chaves { } nos documentos não
-     * quebram o prompt.
-     */
     static String montarMensagemDoUsuario(String pergunta, List<Document> documentos) {
         StringBuilder contexto = new StringBuilder();
         if (documentos.isEmpty()) {

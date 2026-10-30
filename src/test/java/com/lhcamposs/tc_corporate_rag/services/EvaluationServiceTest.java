@@ -3,6 +3,7 @@ package com.lhcamposs.tc_corporate_rag.services;
 import com.lhcamposs.tc_corporate_rag.dto.RecoveredSource;
 import com.lhcamposs.tc_corporate_rag.dto.RetrievalResponse;
 import com.lhcamposs.tc_corporate_rag.exceptions.VectorStoreNotAvailableException;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreRegistry;
 import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +33,14 @@ class EvaluationServiceTest {
     @Mock
     private JdbcTemplate jdbcTemplate;
 
+    @Mock
+    private VectorStoreRegistry vectorStoreRegistry;
+
     private EvaluationService evaluationService;
 
     @BeforeEach
     void setUp() {
-        evaluationService = new EvaluationService(ragQueryService, lexicalSearchService, jdbcTemplate);
+        evaluationService = new EvaluationService(ragQueryService, lexicalSearchService, jdbcTemplate, vectorStoreRegistry);
     }
 
     @Test

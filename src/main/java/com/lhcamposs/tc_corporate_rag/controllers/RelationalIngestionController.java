@@ -20,12 +20,6 @@ public class RelationalIngestionController {
         this.relationalIngestionService = relationalIngestionService;
     }
 
-    /**
-     * POST /api/relational/ingest
-     * Lê all os registros da tabela artigo_conhecimento, gera embeddings
-     * e indexa no pgvector (além de salvar em document_chunk, para a
-     * baseline lexical).
-     */
     @Operation(
             summary = "Ingesta a base relacional",
             description = "Lê os registros da tabela artigo_conhecimento, gera embeddings e indexa no pgvector."

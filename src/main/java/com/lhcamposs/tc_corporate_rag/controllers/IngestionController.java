@@ -15,9 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-/**
- * Endpoints de ingestão de documentos corporativos (PDFs).
- */
 @RestController
 @RequestMapping("/api/documents")
 @Tag(name = "Ingestão de Documentos",
@@ -30,11 +27,6 @@ public class IngestionController {
         this.ingestionService = ingestionService;
     }
 
-    /**
-     * POST /api/documents/upload
-     * Recebe um PDF (multipart/form-data, campo "arquivo") e o processa:
-     * extrai texto, gera chunks, cria embeddings e indexa no pgvector.
-     */
     @Operation(
             summary = "Envia um PDF para ingestão",
             description = "Extrai o texto do PDF, divide em chunks, gera embeddings e indexa no pgvector."

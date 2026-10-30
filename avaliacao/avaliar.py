@@ -347,6 +347,7 @@ def escrever_csv(caminho: Path, linhas: list[dict]):
 
 
 def cmd_recuperar(args, api: Api):
+    destino = Path(args.saida) if args.saida else RESULTADOS
     perguntas = [p for p in ler_gabarito(Path(args.gabarito)) if p["pergunta"]]
     com_resposta = [p for p in perguntas if p["tipo"] != "sem_resposta"]
     print(f"{len(perguntas)} perguntas ({len(com_resposta)} com resposta). Métodos: {', '.join(METODOS_RECUPERACAO)}; "
@@ -425,12 +426,12 @@ def cmd_recuperar(args, api: Api):
         "intersecao_media_top10": statistics.mean(c["intersecao_top10"] for c in concord) if concord else 0,
     }
 
-    escrever_csv(RESULTADOS / "recuperacao_rankings.csv", rankings)
-    escrever_csv(RESULTADOS / "recuperacao_por_pergunta.csv", por_pergunta)
-    escrever_csv(RESULTADOS / "recuperacao_metricas.csv", agregados)
-    escrever_csv(RESULTADOS / "recuperacao_tempos.csv", tempos)
-    escrever_csv(RESULTADOS / "recuperacao_tempos_resumo.csv", resumo_tempos)
-    escrever_csv(RESULTADOS / "concordancia_pgvector_chroma.csv", concord)
+    escrever_csv(destino / "recuperacao_rankings.csv", rankings)
+    escrever_csv(destino / "recuperacao_por_pergunta.csv", por_pergunta)
+    escrever_csv(destino / "recuperacao_metricas.csv", agregados)
+    escrever_csv(destino / "recuperacao_tempos.csv", tempos)
+    escrever_csv(destino / "recuperacao_tempos_resumo.csv", resumo_tempos)
+    escrever_csv(destino / "concordancia_pgvector_chroma.csv", concord)
 
     print("\nMétricas de recuperação (todas as perguntas com resposta):")
     print(f"  {'método':10} " + " ".join(f"{'R@' + str(k):>7}" for k in KS) + f" {'MRR@10':>7}")
@@ -442,7 +443,7 @@ def cmd_recuperar(args, api: Api):
         print(f"  {t['metodo']:10} mediana {t['mediana_ms']:8.1f}   p95 {t['p95_ms']:8.1f}")
     print(f"\npgvector x ChromaDB: mesmos 4 primeiros trechos na mesma ordem em {resumo_concord['mesma_ordem_top4']}"
           f"/{n} perguntas; mesmos 10 em {resumo_concord['mesma_ordem_top10']}/{n}.")
-    print(f"\nArquivos em {RESULTADOS}")
+    print(f"\nArquivos em {destino}")
 
 
 # ----------------------------------------------------------------------------- geração
@@ -677,6 +678,7 @@ def main():
     s.add_argument("--offline", action="store_true", help="não consulta a aplicação para conferir os vector_id")
     s = sub.add_parser("recuperar", help="métricas e tempos de recuperação dos três métodos")
     s.add_argument("--repeticoes", type=int, default=5, help="repetições de cada consulta para medir o tempo")
+    s.add_argument("--saida", default=None, help="pasta dos resultados (padrão: resultados/)")
     s = sub.add_parser("gerar", help="gera as respostas (pgvector, chroma e teto) e a planilha de avaliação cega")
     s.add_argument("--semente", type=int, default=2026, help="semente do embaralhamento da planilha")
     sub.add_parser("notas", help="calcula as métricas de resposta a partir das notas")

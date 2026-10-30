@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-/** Resultado só da etapa de recuperação, usado no cálculo de Recall@k e MRR@k. */
 public record RetrievalResponse(
 
         @Schema(description = "Método de recuperação: pgvector, chroma ou lexical.", example = "pgvector")

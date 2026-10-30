@@ -42,6 +42,8 @@ rag.top-k=4
 rag.similarity-threshold=0.0
 # Temperatura 0: geracao deterministica (mesma pergunta + mesmos trechos = mesma resposta)
 rag.temperatura=0.0
+# Prefixos de tarefa do nomic-embed-text (search_document:/search_query:). Ao mudar, rode POST /api/evaluation/reindex
+rag.embedding.prefixos=true
 
 # --- Integracao com Docker Compose ---
 spring.docker.compose.enabled=true

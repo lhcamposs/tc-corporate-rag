@@ -52,12 +52,6 @@ public class RelationalIngestionService {
         return identificados.size();
     }
 
-    /**
-     * Converte uma linha da tabela em um Document textual, com metadados
-     * que identificam a origem — útil para depois rastrear, numa resposta
-     * do RAG, se o trecho recuperado veio de um PDF ou de um registro
-     * estruturado (campo "source" em Document.getMetadata()).
-     */
     private Document mapRowToDocument(ResultSet rs, int rowNum) throws SQLException {
         long id = rs.getLong("id");
         String categoria = rs.getString("category");

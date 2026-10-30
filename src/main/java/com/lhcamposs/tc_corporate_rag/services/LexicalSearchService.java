@@ -39,8 +39,6 @@ public class LexicalSearchService {
 
     static final int LIMITE_RESULTADOS = 10;
 
-    // plainto_tsquery higieniza a entrada (operadores, aspas e % viram texto
-    // inofensivo) e gera 'a' & 'b'; o replace troca o AND por OR.
     static final String BUSCA_SQL = """
             SELECT dc.vector_id, dc.source_file, dc.chunk_index, dc.content,
                    ts_rank(dc.content_tsv, consulta.q, 1) AS score
@@ -63,7 +61,6 @@ public class LexicalSearchService {
         return buscarPorTermo(termo, LIMITE_RESULTADOS);
     }
 
-    /** Mesma busca, com o número de resultados escolhido (usado pela avaliação). */
     public List<RecoveredSource> buscarPorTermo(String termo, int limite) {
         try {
             return jdbcTemplate.query(BUSCA_SQL, LexicalSearchService::mapear, termo, limite);
