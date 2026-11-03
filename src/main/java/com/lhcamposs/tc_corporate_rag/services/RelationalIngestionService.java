@@ -1,9 +1,8 @@
 package com.lhcamposs.tc_corporate_rag.services;
 
 import com.lhcamposs.tc_corporate_rag.exceptions.DocumentProcessingException;
-import com.lhcamposs.tc_corporate_rag.exceptions.LexicalSearchException;
-import com.lhcamposs.tc_corporate_rag.exceptions.LlmIntegrationException;
 import org.springframework.ai.document.Document;
+import com.lhcamposs.tc_corporate_rag.vectorstore.VectorStoreRegistry;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -16,14 +15,16 @@ import java.util.Map;
 @Service
 public class RelationalIngestionService {
 
+    private static final String FONTE = "artigo_conhecimento";
+
     private static final String SELECT_REGISTROS =
             "SELECT id, category, title, content FROM artigo_conhecimento ORDER BY id";
 
-    private final VectorStore vectorStore;
+    private final VectorStoreRegistry vectorStoreRegistry;
     private final JdbcTemplate jdbcTemplate;
 
-    public RelationalIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
-        this.vectorStore = vectorStore;
+    public RelationalIngestionService(VectorStoreRegistry vectorStoreRegistry, JdbcTemplate jdbcTemplate) {
+        this.vectorStoreRegistry = vectorStoreRegistry;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -38,43 +39,19 @@ public class RelationalIngestionService {
                     "Failed to query and convert relational records from 'artigo_conhecimento' into documents.", e);
         }
 
-        if (documentos.isEmpty()) {
-            return 0;
-        }
+        // 2. ID determinístico (fonte + posição) e metadados de rastreio.
+        // Registros costumam ser curtos o suficiente para não precisar
+        // de TokenTextSplitter aqui, diferente dos PDFs (IngestionService).
+        List<Document> identificados = IngestionSupport.comIdentidadeEstavel(documentos, FONTE, "relational");
 
-        try {
-            // 2. Gera os embeddings (via Ollama) e salva no pgvector.
-            // Registros costumam ser curtos o suficiente para não precisar
-            // de TokenTextSplitter aqui, diferente dos PDFs (IngestionService).
-            vectorStore.add(documentos);
-        } catch (Exception e) {
-            throw new LlmIntegrationException(
-                    "Failed to generate embeddings or connect to the vector store for the relational records.", e);
-        }
+        // 3. Upsert nos bancos vetoriais e em document_chunk (baseline lexical), removendo
+        // o que não existe mais na tabela. Se a tabela estiver vazia, o índice
+        // dessa fonte também é esvaziado, e rodar de novo não muda nada (idempotente).
+        IngestionSupport.sync(vectorStoreRegistry.all(), jdbcTemplate, FONTE, identificados);
 
-        try {
-            // 3. Também salva o texto puro em document_chunk, para manter a
-            // busca lexical (baseline) enxergando a mesma base de conhecimento.
-            for (int i = 0; i < documentos.size(); i++) {
-                jdbcTemplate.update(
-                        "INSERT INTO document_chunk (source_file, chunk_index, content) VALUES (?, ?, ?)",
-                        "artigo_conhecimento", i, documentos.get(i).getText()
-                );
-            }
-        } catch (Exception e) {
-            throw new LexicalSearchException(
-                    "Failed to save relational records to document_chunk for lexical search.", e);
-        }
-
-        return documentos.size();
+        return identificados.size();
     }
 
-    /**
-     * Converte uma linha da tabela em um Document textual, com metadados
-     * que identificam a origem — útil para depois rastrear, numa resposta
-     * do RAG, se o trecho recuperado veio de um PDF ou de um registro
-     * estruturado (campo "source" em Document.getMetadata()).
-     */
     private Document mapRowToDocument(ResultSet rs, int rowNum) throws SQLException {
         long id = rs.getLong("id");
         String categoria = rs.getString("category");

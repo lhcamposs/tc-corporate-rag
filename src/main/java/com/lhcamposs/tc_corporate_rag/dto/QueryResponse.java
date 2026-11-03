@@ -1,9 +1,27 @@
 package com.lhcamposs.tc_corporate_rag.dto;
 
-/**
- * tempoRespostaMs é útil desde já para a Fase 4 (avaliação de custo
- * computacional pedida na proposta) — você já sai com esse dado registrado
- * em cada chamada, sem precisar instrumentar depois.
- */
-public record QueryResponse(String resposta, long tempoRespostaMs) {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.List;
+
+public record QueryResponse(
+
+        @Schema(description = "Resposta gerada pelo LLM a partir do contexto recuperado.")
+        String resposta,
+
+        @Schema(description = "Banco vetorial usado na recuperação.", example = "pgvector")
+        String store,
+
+        @Schema(description = "Trechos recuperados e enviados ao LLM como contexto (as fontes da resposta).")
+        List<RecoveredSource> fontes,
+
+        @Schema(description = "Tempo da busca vetorial (inclui o embedding da pergunta), em milissegundos.", example = "120")
+        long tempoRecuperacaoMs,
+
+        @Schema(description = "Tempo de geração da resposta pelo LLM, em milissegundos.", example = "720")
+        long tempoGeracaoMs,
+
+        @Schema(description = "Tempo total da consulta, em milissegundos.", example = "842")
+        long tempoRespostaMs
+) {
 }

@@ -6,8 +6,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class TcCorporateRagApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TcCorporateRagApplication.class, args);
-	}
+ public static void main(String[] args) {
+        System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
+        SpringApplication.run(TcCorporateRagApplication.class, args);
+    }
 
 }

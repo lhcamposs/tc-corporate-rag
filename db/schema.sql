@@ -3,7 +3,15 @@
 
 CREATE TABLE IF NOT EXISTS document_chunk (
     id SERIAL PRIMARY KEY,
-    source_file TEXT,
-    chunk_index INT,
-    content TEXT
+    source_file TEXT NOT NULL,
+    chunk_index INT NOT NULL,
+    vector_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    content_tsv tsvector
+        GENERATED ALWAYS AS (to_tsvector('portuguese', content)) STORED,
+    CONSTRAINT uq_document_chunk_source_index UNIQUE (source_file, chunk_index),
+    CONSTRAINT uq_document_chunk_vector_id UNIQUE (vector_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_document_chunk_content_tsv
+    ON document_chunk USING GIN (content_tsv);
