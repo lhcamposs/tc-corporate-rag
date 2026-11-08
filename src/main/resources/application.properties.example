@@ -23,6 +23,8 @@ spring.ai.vectorstore.pgvector.index-type=HNSW
 spring.ai.vectorstore.pgvector.distance-type=COSINE_DISTANCE
 spring.ai.vectorstore.pgvector.dimensions=768
 spring.ai.vectorstore.pgvector.initialize-schema=true
+# Tabela dos vetores. Cada modelo de embeddings usa a sua (o perfil bge-m3 troca para vector_store_bge_m3).
+spring.ai.vectorstore.pgvector.table-name=vector_store
 
 # --- Vector store: ChromaDB (objetivo c: comparacao pgvector x ChromaDB) ---
 # O Chroma sobe por autoconfigure. Ele sobe junto com o app via docker compose.

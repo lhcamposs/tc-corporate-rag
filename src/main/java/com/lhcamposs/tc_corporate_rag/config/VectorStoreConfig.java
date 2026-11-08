@@ -19,6 +19,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * (spring.ai.vectorstore.chroma.*).
  *
  * A escolha entre os dois em tempo de execução é feita pelo VectorStoreRegistry.
+ *
+ * O nome da tabela vem de spring.ai.vectorstore.pgvector.table-name (padrão vector_store).
+ * Cada modelo de embeddings usa a sua própria tabela, porque a dimensão do vetor é fixa na
+ * coluna (ver o perfil bge-m3).
  */
 @Configuration
 public class VectorStoreConfig {
@@ -28,6 +32,7 @@ public class VectorStoreConfig {
             JdbcTemplate jdbcTemplate,
             EmbeddingModel embeddingModel,
             @Value("${spring.ai.vectorstore.pgvector.dimensions:768}") int dimensions,
+            @Value("${spring.ai.vectorstore.pgvector.table-name:vector_store}") String tableName,
             @Value("${spring.ai.vectorstore.pgvector.distance-type:COSINE_DISTANCE}")
             PgVectorStore.PgDistanceType distanceType,
             @Value("${spring.ai.vectorstore.pgvector.index-type:HNSW}")
@@ -36,6 +41,7 @@ public class VectorStoreConfig {
 
         return PgVectorStore.builder(jdbcTemplate, embeddingModel)
                 .dimensions(dimensions)
+                .vectorTableName(tableName)
                 .distanceType(distanceType)
                 .indexType(indexType)
                 .initializeSchema(initializeSchema)

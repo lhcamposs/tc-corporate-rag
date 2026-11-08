@@ -53,6 +53,34 @@ Termine o gabarito (passo 3) **antes** dos passos 5 e 6, para que ele não seja 
 
 Os CSV usam `;` como separador e vírgula decimal, para abrir direto no Excel em português.
 
+## Rodada com outro modelo de embeddings (bge-m3)
+
+Repete só a **recuperação** com o `bge-m3` (multilíngue, 1024 dimensões), sem alterar os resultados já gerados.
+O perfil `bge-m3` usa uma tabela do pgvector (`vector_store_bge_m3`) e uma coleção do ChromaDB
+(`tc_corporate_rag_bge_m3`) próprias; a baseline lexical e a tabela `document_chunk` são as mesmas.
+
+```powershell
+# 1. Baixar o modelo no Ollama (uma vez)
+docker exec ollama ollama pull bge-m3
+
+# 2. Subir a aplicação com o perfil (use aspas no -D)
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=bge-m3"
+
+# 3. Em outro terminal: gerar os vetores de todos os trechos nos dois bancos
+curl.exe -X POST http://localhost:8080/api/evaluation/reindex
+
+# 4. Conferir (deve mostrar o mesmo numero de trechos em document_chunk e vector_store_bge_m3)
+docker exec postgres-pgvector psql -U lhcampos -d tc_rag_db -c "SELECT (SELECT count(*) FROM document_chunk) AS trechos, (SELECT count(*) FROM vector_store_bge_m3) AS vetores_bge_m3;"
+
+# 5. Rodar só a recuperação, gravando em outra pasta
+cd avaliacao
+python avaliar.py recuperar --saida resultados/bge_m3
+```
+
+As métricas ficam em `resultados/bge_m3/recuperacao_metricas.csv` (linhas `pgvector` e `chroma`; a linha `lexical`
+repete a baseline e deve coincidir com a da pasta `resultados/com_prefixo`). Para voltar ao `nomic-embed-text`, reinicie
+a aplicação sem o perfil: as tabelas antigas não foram alteradas.
+
 ## Espaço ocupado por cada banco
 
 ```powershell
